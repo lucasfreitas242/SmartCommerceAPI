@@ -86,5 +86,16 @@ namespace SmartCommerceAPI.Controllers
             await _buyers.ReplaceOneAsync(b => b.Id == id, buyerIn);
             return NoContent();
         }
+
+        [HttpGet("check-email/{email}")]
+        public async Task<IActionResult> CheckEmail(string email)
+        {
+            var existingBuyer = await _buyers.Find(b => b.Email == email).FirstOrDefaultAsync();
+            if (existingBuyer != null)
+            {
+                return Ok(new { exists = true });
+            }
+            return Ok(new { exists = false });
+        }
     }
 }
