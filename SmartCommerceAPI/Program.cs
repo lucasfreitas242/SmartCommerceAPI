@@ -1,8 +1,18 @@
 using Microsoft.Extensions.Options;
+using Serilog;
 using SmartCommerceAPI;
 using SmartCommerceAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+// Adicionando o Serilog como o logger padrão
+builder.Host.UseSerilog();
 
 // Add services to the container.
 

@@ -4,10 +4,10 @@ namespace SmartCommerceAPI.Application.Interfaces
 {
     public interface IBuyerService
     {
-        Task<Buyer> GetByIdAsync(string id);
-        Task<IEnumerable<Buyer>> GetAllAsync();
-        Task CreateAsync(Buyer buyer);
-        Task UpdateAsync(string id, Buyer buyer);
-        Task DeleteAsync(string id);
+        Task<List<Buyer>> GetBuyersAsync();
+        Task<List<Buyer>> FilterBuyersAsync(BuyerFilter filter);
+        Task<Buyer> CreateBuyerAsync(Buyer buyer);
+        Task<bool> UpdateBuyerAsync(Guid id, Buyer buyerIn);
+        Task<object> ValidateFieldsAsync(Buyer buyer);
     }
 }

@@ -1,44 +1,83 @@
-﻿using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using SmartCommerceAPI.Application.Interfaces;
+using SmartCommerceAPI.Data;
 using SmartCommerceAPI.Models;
 
 namespace SmartCommerceAPI.Application.Services
 {
     public class BuyerService : IBuyerService
     {
-        private readonly IMongoCollection<Buyer> _buyersCollection;
+        private readonly IMongoCollection<Buyer> _buyers;
 
-        public BuyerService(IMongoClient mongoClient, IOptions<MongoDbSettings> mongoDbSettings)
+        public BuyerService(MongoDbContext context)
         {
-            var database = mongoClient.GetDatabase(mongoDbSettings.Value.DatabaseName);
-            _buyersCollection = database.GetCollection<Buyer>("Buyers");
+            _buyers = context.Buyers;
         }
 
-        public async Task<Buyer> GetByIdAsync(string id)
+        public async Task<List<Buyer>> GetBuyersAsync()
         {
-            return await _buyersCollection.Find(b => b.Id == new Guid(id)).FirstOrDefaultAsync();
+            return await _buyers.Find(FilterDefinition<Buyer>.Empty)
+                                 .Limit(20)
+                                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Buyer>> GetAllAsync()
+        public async Task<List<Buyer>> FilterBuyersAsync(BuyerFilter filter)
         {
-            return await _buyersCollection.Find(_ => true).ToListAsync();
+            var filterDefinition = Builders<Buyer>.Filter.Empty;
+
+            if (!string.IsNullOrEmpty(filter.Name))
+                filterDefinition &= Builders<Buyer>.Filter.Regex("Name", new MongoDB.Bson.BsonRegularExpression(filter.Name, "i"));
+            if (!string.IsNullOrEmpty(filter.Email))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("Email", filter.Email);
+            if (!string.IsNullOrEmpty(filter.Phone))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("Phone", filter.Phone);
+            if (!string.IsNullOrEmpty(filter.PersonType))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("PersonType", filter.PersonType);
+            if (!string.IsNullOrEmpty(filter.Document))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("CpfCnpj", filter.Document);
+            if (!string.IsNullOrEmpty(filter.StateRegistration))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("StateRegistration", filter.StateRegistration);
+            if (filter.Blocked.HasValue)
+                filterDefinition &= Builders<Buyer>.Filter.Eq("Blocked", filter.Blocked.Value);
+
+            return await _buyers.Find(filterDefinition).ToListAsync();
         }
 
-        public async Task CreateAsync(Buyer buyer)
+        public async Task<Buyer> CreateBuyerAsync(Buyer buyer)
         {
-            await _buyersCollection.InsertOneAsync(buyer);
+            if (buyer.Id == Guid.Empty)
+            {
+                buyer.Id = Guid.NewGuid();
+                buyer.CreatedAt = DateTime.Now;
+            }
+
+            await _buyers.InsertOneAsync(buyer);
+            return buyer;
         }
 
-        public async Task UpdateAsync(string id, Buyer buyer)
+        public async Task<bool> UpdateBuyerAsync(Guid id, Buyer buyerIn)
         {
-            await _buyersCollection.ReplaceOneAsync(b => b.Id == new Guid(id), buyer);
+            var existingBuyer = await _buyers.Find(b => b.Id == id).FirstOrDefaultAsync();
+            if (existingBuyer == null)
+            {
+                return false;
+            }
+
+            buyerIn.Id = id;
+            await _buyers.ReplaceOneAsync(b => b.Id == id, buyerIn);
+            return true;
         }
 
-        public async Task DeleteAsync(string id)
+        public async Task<object> ValidateFieldsAsync(Buyer buyer)
         {
-            await _buyersCollection.DeleteOneAsync(b => b.Id == new Guid(id));
+            var emailExists = await _buyers.Find(b => b.Email == buyer.Email).FirstOrDefaultAsync();
+            var cpfCnpjExists = await _buyers.Find(b => b.CpfCnpj == buyer.CpfCnpj).FirstOrDefaultAsync();
+
+            return new
+            {
+                emailExists = emailExists != null,
+                cpfCnpjExists = cpfCnpjExists != null,
+            };
         }
     }
 }
