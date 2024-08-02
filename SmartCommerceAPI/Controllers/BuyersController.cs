@@ -82,8 +82,7 @@ namespace SmartCommerceAPI.Controllers
                 return NotFound();
             }
 
-            // Replace the existing document with the new one
-            buyerIn.Id = id; // Ensure ID remains unchanged
+            buyerIn.Id = id; 
             await _buyers.ReplaceOneAsync(b => b.Id == id, buyerIn);
             return NoContent();
         }
