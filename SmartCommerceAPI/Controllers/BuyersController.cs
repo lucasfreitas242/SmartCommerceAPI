@@ -35,15 +35,29 @@ namespace SmartCommerceAPI.Controllers
             }
         }
 
-        [HttpGet("{id:guid}", Name = "GetBuyer")]
-        public async Task<ActionResult<Buyer>> Get(Guid id)
+        [HttpGet("filter")]
+        public async Task<IActionResult> FilterBuyers([FromQuery] BuyerFilter filter)
         {
-            var buyer = await _buyers.Find(b => b.Id == id).FirstOrDefaultAsync();
-            if (buyer == null)
-            {
-                return NotFound();
-            }
-            return Ok(buyer);
+            var filterDefinition = Builders<Buyer>.Filter.Empty;
+
+            if (!string.IsNullOrEmpty(filter.Name))
+                filterDefinition &= Builders<Buyer>.Filter.Regex("Name", new MongoDB.Bson.BsonRegularExpression(filter.Name, "i"));
+            if (!string.IsNullOrEmpty(filter.Email))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("Email", filter.Email);
+            if (!string.IsNullOrEmpty(filter.Phone))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("Phone", filter.Phone);
+            if (!string.IsNullOrEmpty(filter.PersonType))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("PersonType", filter.PersonType);
+            if (!string.IsNullOrEmpty(filter.Document))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("CpfCnpj", filter.Document);
+            if (!string.IsNullOrEmpty(filter.StateRegistration))
+                filterDefinition &= Builders<Buyer>.Filter.Eq("StateRegistration", filter.StateRegistration);
+            if (filter.Blocked.HasValue)
+                filterDefinition &= Builders<Buyer>.Filter.Eq("Blocked", filter.Blocked.Value);
+
+            var buyers = await _buyers.Find(filterDefinition).ToListAsync();
+
+            return Ok(buyers);
         }
 
         [HttpPost]
@@ -56,7 +70,7 @@ namespace SmartCommerceAPI.Controllers
             }
 
             await _buyers.InsertOneAsync(buyer);
-            return CreatedAtRoute("GetBuyer", new { id = buyer.Id }, buyer);
+            return StatusCode(StatusCodes.Status201Created, buyer);
         }
 
         [HttpPut("{id:guid}")]
@@ -71,17 +85,6 @@ namespace SmartCommerceAPI.Controllers
             // Replace the existing document with the new one
             buyerIn.Id = id; // Ensure ID remains unchanged
             await _buyers.ReplaceOneAsync(b => b.Id == id, buyerIn);
-            return NoContent();
-        }
-
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id)
-        {
-            var result = await _buyers.DeleteOneAsync(b => b.Id == id);
-            if (result.DeletedCount == 0)
-            {
-                return NotFound();
-            }
             return NoContent();
         }
     }

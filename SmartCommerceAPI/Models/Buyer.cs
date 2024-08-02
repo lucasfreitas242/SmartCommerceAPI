@@ -25,13 +25,13 @@ namespace SmartCommerceAPI.Models
         public string CpfCnpj { get; set; }
 
         [BsonElement("stateRegistration")]
-        public string StateRegistration { get; set; }
+        public string? StateRegistration { get; set; }
 
         [BsonElement("gender")]
-        public string Gender { get; set; }
+        public string? Gender { get; set; }
 
         [BsonElement("birthDate")]
-        public DateTime? BirthDate { get; set; }
+        public DateTime BirthDate { get; set; }
 
         [BsonElement("password")]
         public string Password { get; set; }
@@ -42,6 +42,8 @@ namespace SmartCommerceAPI.Models
         public DateTime CreatedAt { get; set; }
 
         [BsonElement("blocked")]
-        public bool Blocked { get; set; }
+        public bool? Blocked { get; set; }
+        [BsonElement("exempt")]
+        public bool? Exempt { get; set; }
     }
 }
