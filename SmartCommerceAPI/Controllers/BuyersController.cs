@@ -87,15 +87,18 @@ namespace SmartCommerceAPI.Controllers
             return NoContent();
         }
 
-        [HttpGet("check-email/{email}")]
-        public async Task<IActionResult> CheckEmail(string email)
+        [HttpPost("validate-fields")]
+        public async Task<IActionResult> ValidateFields([FromBody] Buyer buyer)
         {
-            var existingBuyer = await _buyers.Find(b => b.Email == email).FirstOrDefaultAsync();
-            if (existingBuyer != null)
+            var emailExists = await _buyers.Find(b => b.Email == buyer.Email).FirstOrDefaultAsync();
+            var cpfCnpjExists = await _buyers.Find(b => b.CpfCnpj == buyer.CpfCnpj).FirstOrDefaultAsync();
+
+
+            return Ok(new
             {
-                return Ok(new { exists = true });
-            }
-            return Ok(new { exists = false });
+                emailExists = emailExists != null,
+                cpfCnpjExists = cpfCnpjExists != null
+            });
         }
     }
 }
